@@ -2,19 +2,42 @@ import { useState, useEffect, useRef } from "react";
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#080c14", gold:"#FFD700", red:"#c8102e", green:"#4ade80",
+  bg:"#08050f", gold:"#FFD700", red:"#c8102e", green:"#4ade80",
   surface:"rgba(255,255,255,0.04)", border:"rgba(255,255,255,0.09)",
   text:"#fff", muted:"rgba(255,255,255,0.38)", dim:"rgba(255,255,255,0.18)",
+  neon:"#00f5ff", pink:"#ff00aa", purple:"#9000ff",
 };
 
-// ─── CAROUSEL DATA ────────────────────────────────────────────────────────────
-const SHOWCASE = [
-  { id:1,initials:"PM",lastName:"MAHOMES",year:"2017",brand:"PANINI PRIZM",set:"PRIZM",number:"269",parallel:"SILVER PRIZM",team:"CHIEFS",pos:"QB",sport:"NFL",jersey:"15",c1:"#c8102e",c2:"#FFB81C",bg1:"#0a0005",bg2:"#1a0008",accent:"#e8e8e8",prizm:true },
-  { id:2,initials:"LJ",lastName:"JAMES",year:"2003",brand:"TOPPS CHROME",set:"CHROME RC",number:"111",parallel:"GOLD /50",team:"CAVALIERS",pos:"SF",sport:"NBA",jersey:"23",c1:"#6F263D",c2:"#FFB81C",bg1:"#0f0800",bg2:"#1a1000",accent:"#FFB81C",prizm:false },
-  { id:3,initials:"MT",lastName:"TROUT",year:"2011",brand:"BOWMAN CHROME",set:"CHROME",number:"175",parallel:"BLUE /150",team:"ANGELS",pos:"CF",sport:"MLB",jersey:"27",c1:"#BA0021",c2:"#003263",bg1:"#00050f",bg2:"#000d1a",accent:"#4fc3f7",prizm:false },
-  { id:4,initials:"CM",lastName:"McDAVID",year:"2015",brand:"UPPER DECK",set:"YOUNG GUNS",number:"201",parallel:"CLEAR /99",team:"OILERS",pos:"C",sport:"NHL",jersey:"97",c1:"#FF4C00",c2:"#041E42",bg1:"#0a0300",bg2:"#0f0500",accent:"#FF6B2B",prizm:false },
-  { id:5,initials:"LD",lastName:"DONČIĆ",year:"2018",brand:"PANINI PRIZM",set:"PRIZM RC",number:"280",parallel:"SILVER RC",team:"MAVERICKS",pos:"PG",sport:"NBA",jersey:"77",c1:"#00538C",c2:"#00A9CE",bg1:"#00030a",bg2:"#000812",accent:"#00A9CE",prizm:true },
-  { id:6,initials:"JB",lastName:"BURROW",year:"2020",brand:"TOPPS CHROME",set:"CHROME AUTO RC",number:"101",parallel:"REFRACTOR AUTO",team:"BENGALS",pos:"QB",sport:"NFL",jersey:"9",c1:"#FB4F14",c2:"#000",bg1:"#0f0100",bg2:"#1a0200",accent:"#FB4F14",prizm:false },
+// ─── ATHLETES ─────────────────────────────────────────────────────────────────
+const ATHLETES = [
+  {
+    id:1, name:"Luka Dončić", lastName:"DONČIĆ", initials:"LD",
+    year:"2018", brand:"PANINI PRIZM", set:"PRIZM", number:"280",
+    parallel:"SILVER PRIZM RC", team:"MAVERICKS", pos:"PG", sport:"NBA", jersey:"77",
+    c1:"#00538C", c2:"#00A9CE", bg1:"#000a18", bg2:"#001428", accent:"#00f5ff",
+    neonColor:"#00f5ff", prizm:true,
+  },
+  {
+    id:2, name:"LeBron James", lastName:"JAMES", initials:"LJ",
+    year:"2003", brand:"TOPPS CHROME", set:"CHROME", number:"111",
+    parallel:"GOLD REFRACTOR /50", team:"LAKERS", pos:"SF", sport:"NBA", jersey:"23",
+    c1:"#552583", c2:"#FDB927", bg1:"#0f0820", bg2:"#180c00", accent:"#FDB927",
+    neonColor:"#FFD700", prizm:false,
+  },
+  {
+    id:3, name:"Patrick Mahomes", lastName:"MAHOMES", initials:"PM",
+    year:"2017", brand:"PANINI PRIZM", set:"PRIZM", number:"269",
+    parallel:"SILVER PRIZM RC", team:"CHIEFS", pos:"QB", sport:"NFL", jersey:"15",
+    c1:"#c8102e", c2:"#FFB81C", bg1:"#150005", bg2:"#200008", accent:"#ff4466",
+    neonColor:"#ff00aa", prizm:true,
+  },
+  {
+    id:4, name:"Aaron Judge", lastName:"JUDGE", initials:"AJ",
+    year:"2017", brand:"TOPPS CHROME", set:"CHROME", number:"169",
+    parallel:"REFRACTOR RC", team:"YANKEES", pos:"RF", sport:"MLB", jersey:"99",
+    c1:"#003087", c2:"#E4002C", bg1:"#000510", bg2:"#000818", accent:"#4488ff",
+    neonColor:"#4488ff", prizm:false,
+  },
 ];
 
 // ─── IMAGE COMPRESSION ────────────────────────────────────────────────────────
@@ -28,7 +51,7 @@ async function compressImage(base64, mime) {
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-      const out = canvas.toDataURL("image/jpeg", 0.85);
+      const out = canvas.toDataURL("image/jpeg", 0.80);
       resolve({ base64: out.split(",")[1], mime: "image/jpeg" });
     };
     img.onerror = () => resolve({ base64, mime });
@@ -36,26 +59,20 @@ async function compressImage(base64, mime) {
   });
 }
 
-// ─── AI EXTRACTION — calls your Netlify function, API key stays server-side ──
+// ─── AI EXTRACTION ────────────────────────────────────────────────────────────
 async function runExtraction(base64, mime) {
   const img = await compressImage(base64, mime);
-
   const res = await fetch("/api/analyze-card", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ base64: img.base64, mime: img.mime }),
   });
-
   const data = await res.json();
-
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || `Server error ${res.status}`);
-  }
-
+  if (!res.ok || !data.success) throw new Error(data.error || `Server error ${res.status}`);
   return data.card;
 }
 
-// ─── PRICE ESTIMATE (mock comps — wire to eBay sold API in production) ────────
+// ─── PRICE MOCK ───────────────────────────────────────────────────────────────
 function mockPrice(card) {
   const base = { football:32, basketball:44, baseball:28, hockey:26, soccer:22 };
   let p = base[card.sport] || 30;
@@ -71,12 +88,12 @@ function mockPrice(card) {
 
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const btn = (extra = {}) => ({
-  border: "none", cursor: "pointer", fontFamily: "Georgia,serif", transition: "all .2s", ...extra,
+  border:"none", cursor:"pointer", fontFamily:"'Courier New',monospace", transition:"all .2s", ...extra,
 });
 
 function Screen({ children, style = {} }) {
   return (
-    <div style={{ position:"fixed", inset:0, background:C.bg, display:"flex", flexDirection:"column", fontFamily:"Georgia,serif", overflowY:"auto", overflowX:"hidden", ...style }}>
+    <div style={{ position:"fixed", inset:0, background:C.bg, display:"flex", flexDirection:"column", fontFamily:"'Courier New',monospace", overflowY:"auto", overflowX:"hidden", ...style }}>
       {children}
     </div>
   );
@@ -98,40 +115,66 @@ function Pill({ children, active, onClick, color }) {
   const bg  = active ? (color || C.gold) : "rgba(255,255,255,0.07)";
   const col = active ? (color && color !== C.gold ? "#fff" : "#000") : C.muted;
   return (
-    <button onClick={onClick} style={btn({ padding:"10px 18px", borderRadius:22, fontSize:14, fontWeight:700, background:bg, color:col, border:`1.5px solid ${active ? (color || C.gold) : "rgba(255,255,255,0.1)"}`, boxShadow:active ? `0 0 14px ${(color||C.gold)}44` : "none" })}>
+    <button onClick={onClick} style={btn({ padding:"10px 18px", borderRadius:22, fontSize:14, fontWeight:700, background:bg, color:col, border:`1.5px solid ${active?(color||C.gold):"rgba(255,255,255,0.1)"}`, boxShadow:active?`0 0 14px ${(color||C.gold)}44`:"none", fontFamily:"'Courier New',monospace" })}>
       {children}
     </button>
   );
 }
 
-// ─── CAROUSEL ─────────────────────────────────────────────────────────────────
-function CardFace({ card, sx = 50, sy = 50, hov }) {
-  const holo  = `conic-gradient(from ${sx*3.6}deg at ${sx}% ${sy}%,rgba(255,0,60,.14),rgba(255,130,0,.12),rgba(255,230,0,.13),rgba(0,210,80,.1),rgba(0,120,255,.13),rgba(130,0,255,.12),rgba(255,0,60,.14))`;
-  const lines = `repeating-linear-gradient(${sx*2}deg,transparent 0,rgba(255,255,255,.026) 1px,transparent 2px,transparent 9px)`;
+// ─── RETRO CARD FACE ──────────────────────────────────────────────────────────
+function RetroCardFace({ card, sx=50, sy=50, hov }) {
+  const holo  = `conic-gradient(from ${sx*3.6}deg at ${sx}% ${sy}%,rgba(0,245,255,.18),rgba(144,0,255,.15),rgba(255,0,170,.18),rgba(0,245,255,.15))`;
+  const lines = `repeating-linear-gradient(${sx*1.8}deg,transparent 0,rgba(0,245,255,.04) 1px,transparent 2px,transparent 6px)`;
+  const scanlines = `repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.15) 3px,rgba(0,0,0,.15) 3px)`;
+
   return (
-    <div style={{ width:"100%", height:"100%", borderRadius:3, overflow:"hidden", position:"relative", background:`linear-gradient(160deg,${card.bg1},${card.bg2},${card.c1}1a)` }}>
-      {card.prizm && <div style={{ position:"absolute", inset:0, background:lines, opacity:hov?.7:.35, transition:"opacity .3s" }}/>}
-      <div style={{ position:"absolute", inset:0, background:holo, opacity:hov?.9:.3, mixBlendMode:"color-dodge", transition:"opacity .3s" }}/>
-      <div style={{ position:"absolute", bottom:22, right:-4, fontSize:82, fontWeight:900, color:`${card.c1}1a`, lineHeight:1, userSelect:"none" }}>{card.jersey}</div>
-      <div style={{ position:"relative", zIndex:2, padding:"7px 7px 4px", display:"flex", justifyContent:"space-between", borderBottom:`1px solid ${card.accent}1a` }}>
-        <span style={{ fontSize:5.5, fontWeight:900, letterSpacing:".12em", color:card.accent, textTransform:"uppercase" }}>{card.brand}</span>
-        <span style={{ fontSize:5, color:C.muted, fontWeight:700 }}>{card.year}</span>
+    <div style={{ width:"100%", height:"100%", borderRadius:3, overflow:"hidden", position:"relative", background:`linear-gradient(160deg,${card.bg1},${card.bg2})` }}>
+      {/* Scanlines */}
+      <div style={{ position:"absolute", inset:0, background:scanlines, pointerEvents:"none", zIndex:5 }}/>
+      {/* Prizm lines */}
+      {card.prizm && <div style={{ position:"absolute", inset:0, background:lines, opacity:hov?.9:.5, transition:"opacity .3s" }}/>}
+      {/* Holo */}
+      <div style={{ position:"absolute", inset:0, background:holo, opacity:hov?.85:.25, mixBlendMode:"color-dodge", transition:"opacity .3s" }}/>
+      {/* Neon grid overlay */}
+      <div style={{ position:"absolute", inset:0, backgroundImage:`linear-gradient(${card.neonColor}18 1px,transparent 1px),linear-gradient(90deg,${card.neonColor}18 1px,transparent 1px)`, backgroundSize:"12px 12px", opacity:hov?.6:.2, transition:"opacity .3s" }}/>
+      {/* Big jersey watermark */}
+      <div style={{ position:"absolute", bottom:16, right:-6, fontSize:76, fontWeight:900, color:`${card.c1}22`, lineHeight:1, userSelect:"none", fontFamily:"'Courier New',monospace" }}>{card.jersey}</div>
+
+      {/* Header */}
+      <div style={{ position:"relative", zIndex:6, padding:"6px 6px 4px", display:"flex", justifyContent:"space-between", borderBottom:`1px solid ${card.neonColor}33` }}>
+        <span style={{ fontSize:5, fontWeight:900, letterSpacing:".14em", color:card.neonColor, textTransform:"uppercase", textShadow:`0 0 8px ${card.neonColor}` }}>{card.brand}</span>
+        <span style={{ fontSize:5, color:card.accent, fontWeight:700 }}>{card.year}</span>
       </div>
-      <div style={{ position:"relative", zIndex:2, display:"flex", flexDirection:"column", alignItems:"center", padding:"10px 6px 4px" }}>
-        <div style={{ width:50, height:50, borderRadius:"50%", marginBottom:7, background:`radial-gradient(circle at 35% 35%,${card.c1}cc,${card.c2}99)`, border:`2px solid ${card.accent}44`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 20px ${card.c1}44,inset 0 1px 0 rgba(255,255,255,.18)` }}>
-          <span style={{ fontSize:17, fontWeight:900, color:"#fff" }}>{card.initials}</span>
+
+      {/* Player block */}
+      <div style={{ position:"relative", zIndex:6, display:"flex", flexDirection:"column", alignItems:"center", padding:"8px 4px 4px" }}>
+        {/* Glowing circle */}
+        <div style={{
+          width:48, height:48, borderRadius:"50%", marginBottom:6,
+          background:`radial-gradient(circle at 35% 35%,${card.c1}ee,${card.c2}99)`,
+          border:`2px solid ${card.neonColor}`,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          boxShadow:`0 0 20px ${card.neonColor}88, 0 0 40px ${card.neonColor}44, inset 0 1px 0 rgba(255,255,255,.2)`,
+        }}>
+          <span style={{ fontSize:16, fontWeight:900, color:"#fff", textShadow:`0 0 10px ${card.neonColor}`, fontFamily:"'Courier New',monospace" }}>{card.initials}</span>
         </div>
-        <div style={{ fontSize:13, fontWeight:900, color:"#fff", letterSpacing:".06em", textShadow:`0 1px 8px rgba(0,0,0,.9)`, lineHeight:1, marginBottom:4, textAlign:"center" }}>{card.lastName}</div>
+        {/* Name */}
+        <div style={{ fontSize:12, fontWeight:900, color:"#fff", letterSpacing:".08em", textShadow:`0 0 12px ${card.neonColor}, 0 1px 6px rgba(0,0,0,.9)`, lineHeight:1, marginBottom:4, textAlign:"center", fontFamily:"'Courier New',monospace" }}>
+          {card.lastName}
+        </div>
+        {/* Team + pos */}
         <div style={{ display:"flex", gap:5, alignItems:"center" }}>
-          <span style={{ fontSize:6, fontWeight:800, color:card.accent, letterSpacing:".1em", textTransform:"uppercase" }}>{card.team}</span>
+          <span style={{ fontSize:5.5, fontWeight:800, color:card.neonColor, letterSpacing:".1em", textTransform:"uppercase", textShadow:`0 0 6px ${card.neonColor}` }}>{card.team}</span>
           <span style={{ fontSize:5, color:C.dim }}>·</span>
-          <span style={{ fontSize:6, color:C.muted, fontWeight:600 }}>{card.pos}</span>
+          <span style={{ fontSize:5.5, color:C.muted, fontWeight:600 }}>{card.pos}</span>
         </div>
       </div>
-      <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:2, padding:"4px 7px", borderTop:`1px solid ${card.accent}18`, display:"flex", justifyContent:"space-between" }}>
+
+      {/* Footer */}
+      <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:6, padding:"4px 6px", borderTop:`1px solid ${card.neonColor}22`, display:"flex", justifyContent:"space-between" }}>
         <div>
-          <div style={{ fontSize:5, color:card.accent, fontWeight:800, letterSpacing:".1em", textTransform:"uppercase" }}>{card.parallel}</div>
-          <div style={{ fontSize:4.5, color:C.dim, marginTop:1 }}>#{card.number} · {card.set}</div>
+          <div style={{ fontSize:4.5, color:card.neonColor, fontWeight:800, letterSpacing:".1em", textTransform:"uppercase", textShadow:`0 0 6px ${card.neonColor}` }}>{card.parallel}</div>
+          <div style={{ fontSize:4, color:C.dim, marginTop:1 }}>#{card.number} · {card.set}</div>
         </div>
         <div style={{ fontSize:5, color:C.dim, fontWeight:700 }}>{card.sport}</div>
       </div>
@@ -139,63 +182,194 @@ function CardFace({ card, sx = 50, sy = 50, hov }) {
   );
 }
 
-function PSASlab({ card, isActive, onClick }) {
+// ─── PSA SLAB (retro version) ─────────────────────────────────────────────────
+function RetroPSASlab({ card, isActive, onClick }) {
   const ref = useRef(null);
   const [tilt, setTilt]   = useState({ x:0, y:0 });
   const [shine, setShine] = useState({ x:50, y:50 });
   const [hov, setHov]     = useState(false);
+
   const onMove = e => {
     if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    setTilt({ x:((e.clientY-r.top-r.height/2)/(r.height/2))*-13, y:((e.clientX-r.left-r.width/2)/(r.width/2))*13 });
+    setTilt({ x:((e.clientY-r.top-r.height/2)/(r.height/2))*-14, y:((e.clientX-r.left-r.width/2)/(r.width/2))*14 });
     setShine({ x:(e.clientX-r.left)/r.width*100, y:(e.clientY-r.top)/r.height*100 });
   };
+
   return (
-    <div ref={ref} onClick={onClick} onMouseMove={onMove} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{ setTilt({x:0,y:0}); setShine({x:50,y:50}); setHov(false); }}
-      style={{ transition:hov?"none":"transform .65s cubic-bezier(.23,1,.32,1)", transform:`rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle:"preserve-3d", cursor:"pointer" }}>
-      <div style={{ width:158, height:226, borderRadius:7, background:"linear-gradient(165deg,#ededed,#d9d9d9,#c8c8c8)", boxShadow:isActive?"0 0 50px rgba(255,215,0,.5),0 25px 70px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.55)":"0 12px 50px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.4)", padding:"9px 7px 5px", display:"flex", flexDirection:"column", gap:5, position:"relative", overflow:"hidden", border:isActive?"1px solid rgba(255,215,0,.4)":"1px solid rgba(255,255,255,.2)" }}>
-        <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at ${shine.x}% ${shine.y}%,rgba(255,255,255,.22),transparent 55%)`, pointerEvents:"none", zIndex:10 }}/>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:"38%", background:"linear-gradient(180deg,rgba(255,255,255,.12),transparent)", pointerEvents:"none", zIndex:9 }}/>
-        <div style={{ flex:1, borderRadius:4, overflow:"hidden", boxShadow:"inset 0 0 0 1px rgba(0,0,0,.15),0 2px 8px rgba(0,0,0,.4)" }}>
-          <CardFace card={card} sx={shine.x} sy={shine.y} hov={hov}/>
+    <div ref={ref} onClick={onClick} onMouseMove={onMove}
+      onMouseEnter={()=>setHov(true)}
+      onMouseLeave={()=>{ setTilt({x:0,y:0}); setShine({x:50,y:50}); setHov(false); }}
+      style={{ transition:hov?"none":"transform .7s cubic-bezier(.23,1,.32,1)", transform:`rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transformStyle:"preserve-3d", cursor:"pointer" }}>
+
+      {/* Slab body */}
+      <div style={{
+        width:156, height:224, borderRadius:6,
+        background:"linear-gradient(165deg,#1a1a2e,#0d0d1a,#1a1a2e)",
+        padding:"8px 6px 5px",
+        display:"flex", flexDirection:"column", gap:5,
+        position:"relative", overflow:"hidden",
+        border:isActive
+          ? `1px solid ${card.neonColor}`
+          : "1px solid rgba(255,255,255,0.12)",
+        boxShadow:isActive
+          ? `0 0 30px ${card.neonColor}66, 0 0 60px ${card.neonColor}33, 0 20px 60px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.08)`
+          : "0 12px 50px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05)",
+      }}>
+        {/* Slab gloss */}
+        <div style={{ position:"absolute", inset:0, background:`radial-gradient(ellipse at ${shine.x}% ${shine.y}%,rgba(255,255,255,.08),transparent 55%)`, pointerEvents:"none", zIndex:20 }}/>
+        {/* Neon corner accents */}
+        {isActive && ["tl","tr","bl","br"].map(p=>(
+          <div key={p} style={{ position:"absolute", width:10, height:10, borderColor:card.neonColor, borderStyle:"solid", borderWidth:0, zIndex:21,
+            boxShadow:`0 0 6px ${card.neonColor}`,
+            ...(p==="tl"?{top:4,left:4,borderTopWidth:2,borderLeftWidth:2}:
+               p==="tr"?{top:4,right:4,borderTopWidth:2,borderRightWidth:2}:
+               p==="bl"?{bottom:4,left:4,borderBottomWidth:2,borderLeftWidth:2}:
+                        {bottom:4,right:4,borderBottomWidth:2,borderRightWidth:2})
+          }}/>
+        ))}
+
+        {/* Card face */}
+        <div style={{ flex:1, borderRadius:3, overflow:"hidden", boxShadow:"inset 0 0 0 1px rgba(0,0,0,.3)" }}>
+          <RetroCardFace card={card} sx={shine.x} sy={shine.y} hov={hov}/>
         </div>
-        <div style={{ background:"linear-gradient(90deg,#111,#1e1e1e)", borderRadius:4, padding:"4px 7px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-            <div style={{ background:"linear-gradient(135deg,#c8102e,#9a001a)", borderRadius:3, padding:"2px 5px", fontSize:8, fontWeight:900, color:"#fff", letterSpacing:".06em" }}>PSA</div>
+
+        {/* PSA label — retro style */}
+        <div style={{
+          background:"linear-gradient(90deg,#0a0a1a,#111128)",
+          borderRadius:3, padding:"4px 6px",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          flexShrink:0,
+          border:`1px solid ${card.neonColor}44`,
+          boxShadow:`inset 0 0 10px ${card.neonColor}11`,
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <div style={{
+              background:"linear-gradient(135deg,#c8102e,#8a0010)",
+              borderRadius:2, padding:"2px 5px",
+              fontSize:7.5, fontWeight:900, color:"#fff", letterSpacing:".06em",
+              fontFamily:"'Courier New',monospace",
+              boxShadow:"0 0 8px rgba(200,16,46,.6)",
+            }}>PSA</div>
             <div>
-              <div style={{ fontSize:5.5, color:"#888", letterSpacing:".06em", lineHeight:1.2 }}>GEM MINT</div>
-              <div style={{ fontSize:4.5, color:"#555" }}>{String(card.id).padStart(8,"0")}</div>
+              <div style={{ fontSize:5, color:card.neonColor, letterSpacing:".06em", lineHeight:1.2, textShadow:`0 0 4px ${card.neonColor}` }}>GEM MINT</div>
+              <div style={{ fontSize:4, color:"rgba(255,255,255,.3)" }}>#{String(card.id*31337).slice(0,8)}</div>
             </div>
           </div>
-          <div style={{ fontSize:23, fontWeight:900, color:C.gold, fontFamily:"Georgia,serif", lineHeight:1, textShadow:"0 0 14px rgba(255,215,0,.65)" }}>10</div>
+          <div style={{ fontSize:22, fontWeight:900, color:card.neonColor, fontFamily:"'Courier New',monospace", lineHeight:1, textShadow:`0 0 16px ${card.neonColor}, 0 0 32px ${card.neonColor}66` }}>10</div>
         </div>
       </div>
     </div>
   );
 }
 
-function Carousel() {
+// ─── RETRO MACHINE CAROUSEL ───────────────────────────────────────────────────
+function RetroMachineCarousel() {
   const [active, setActive] = useState(0);
-  const dragX = useRef(null); const moved = useRef(false);
-  const total = SHOWCASE.length; const R = 210;
-  useEffect(() => { const t = setInterval(() => { if (!moved.current) setActive(i=>(i+1)%total); }, 3000); return ()=>clearInterval(t); }, []);
+  const dragX  = useRef(null);
+  const moved  = useRef(false);
+  const total  = ATHLETES.length;
+  const R      = 200;
+
+  useEffect(() => {
+    const t = setInterval(() => { if (!moved.current) setActive(i=>(i+1)%total); }, 3200);
+    return () => clearInterval(t);
+  }, []);
+
+  const handleDown = e => { dragX.current = e.clientX; moved.current = false; };
+  const handleMove = () => { if (dragX.current !== null) moved.current = true; };
+  const handleUp   = e => {
+    if (dragX.current !== null) {
+      const d = e.clientX - dragX.current;
+      if (d < -50) setActive(i=>(i+1)%total);
+      else if (d > 50) setActive(i=>(i-1+total)%total);
+      dragX.current = null;
+    }
+  };
+
+  const activeCard = ATHLETES[active];
+
   return (
-    <div style={{ position:"relative", width:"100%", height:320, perspective:1100, display:"flex", alignItems:"center", justifyContent:"center", userSelect:"none" }}
-      onMouseDown={e=>{ dragX.current=e.clientX; moved.current=false; }}
-      onMouseMove={()=>{ if(dragX.current!==null) moved.current=true; }}
-      onMouseUp={e=>{ if(dragX.current!==null){ const d=e.clientX-dragX.current; if(d<-50) setActive(i=>(i+1)%total); else if(d>50) setActive(i=>(i-1+total)%total); dragX.current=null; } }}>
-      <div style={{ position:"relative", width:158, height:226, transformStyle:"preserve-3d" }}>
-        {SHOWCASE.map((card,i)=>{
-          const rad=(i-active)*(360/total)*Math.PI/180; const c=(Math.cos(rad)+1)/2;
-          return (
-            <div key={card.id} style={{ position:"absolute", top:0, left:0, transform:`translateX(${Math.sin(rad)*R}px) translateZ(${Math.cos(rad)*R-R}px) scale(${0.52+0.48*c})`, opacity:0.22+0.78*c, zIndex:Math.round((0.52+0.48*c)*100), transition:"transform .65s cubic-bezier(.23,1,.32,1),opacity .65s", transformOrigin:"center center" }}>
-              <PSASlab card={card} isActive={i===active} onClick={()=>{ if(!moved.current) setActive(i); }}/>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", display:"flex", gap:7 }}>
-        {SHOWCASE.map((_,i)=><div key={i} onClick={()=>setActive(i)} style={{ width:i===active?22:6, height:6, borderRadius:3, cursor:"pointer", background:i===active?C.gold:"rgba(255,255,255,.18)", boxShadow:i===active?"0 0 8px rgba(255,215,0,.5)":"none", transition:"all .3s" }}/>)}
+    <div style={{ position:"relative", width:"100%", display:"flex", flexDirection:"column", alignItems:"center" }}>
+
+      {/* Machine frame */}
+      <div style={{
+        position:"relative",
+        width:"100%", maxWidth:420,
+        background:"linear-gradient(180deg,#0d0d20 0%,#080510 100%)",
+        border:`2px solid ${activeCard.neonColor}`,
+        borderRadius:16,
+        padding:"20px 16px 16px",
+        boxShadow:`0 0 40px ${activeCard.neonColor}44, 0 0 80px ${activeCard.neonColor}22, inset 0 0 30px rgba(0,0,0,.8)`,
+        transition:"border-color .6s, box-shadow .6s",
+        overflow:"hidden",
+      }}>
+        {/* CRT scanline overlay on machine */}
+        <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.08) 4px)", pointerEvents:"none", zIndex:0 }}/>
+
+        {/* Machine top label */}
+        <div style={{ position:"relative", zIndex:2, textAlign:"center", marginBottom:16 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:4 }}>
+            <div style={{ height:1, flex:1, background:`linear-gradient(90deg,transparent,${activeCard.neonColor})` }}/>
+            <span style={{ fontSize:9, fontWeight:900, letterSpacing:".25em", color:activeCard.neonColor, textTransform:"uppercase", textShadow:`0 0 10px ${activeCard.neonColor}`, fontFamily:"'Courier New',monospace" }}>
+              CARD·SNAP·3000
+            </span>
+            <div style={{ height:1, flex:1, background:`linear-gradient(90deg,${activeCard.neonColor},transparent)` }}/>
+          </div>
+          <div style={{ fontSize:7, color:`${activeCard.neonColor}88`, letterSpacing:".2em", textTransform:"uppercase" }}>
+            ◀ DRAG TO BROWSE ▶
+          </div>
+        </div>
+
+        {/* Carousel viewport */}
+        <div
+          style={{ position:"relative", height:260, perspective:1000, display:"flex", alignItems:"center", justifyContent:"center", userSelect:"none", zIndex:2 }}
+          onMouseDown={handleDown} onMouseMove={handleMove} onMouseUp={handleUp}>
+          <div style={{ position:"relative", width:156, height:224, transformStyle:"preserve-3d" }}>
+            {ATHLETES.map((card,i) => {
+              const rad   = (i - active) * (360/total) * Math.PI / 180;
+              const cosV  = (Math.cos(rad) + 1) / 2;
+              const scale = 0.5 + 0.5 * cosV;
+              const op    = 0.2 + 0.8 * cosV;
+              return (
+                <div key={card.id} style={{
+                  position:"absolute", top:0, left:0,
+                  transform:`translateX(${Math.sin(rad)*R}px) translateZ(${Math.cos(rad)*R-R}px) scale(${scale})`,
+                  opacity:op, zIndex:Math.round(scale*100),
+                  transition:"transform .7s cubic-bezier(.23,1,.32,1),opacity .7s",
+                  transformOrigin:"center center",
+                }}>
+                  <RetroPSASlab card={card} isActive={i===active} onClick={()=>{ if(!moved.current) setActive(i); }}/>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active card info */}
+        <div style={{ position:"relative", zIndex:2, textAlign:"center", marginTop:14 }}>
+          <div style={{ fontSize:15, fontWeight:900, color:"#fff", letterSpacing:".06em", textShadow:`0 0 16px ${activeCard.neonColor}`, fontFamily:"'Courier New',monospace" }}>
+            {activeCard.name.toUpperCase()}
+          </div>
+          <div style={{ fontSize:10, color:activeCard.neonColor, letterSpacing:".14em", marginTop:3, textShadow:`0 0 8px ${activeCard.neonColor}` }}>
+            {activeCard.year} {activeCard.brand} · {activeCard.parallel}
+          </div>
+        </div>
+
+        {/* Dot nav */}
+        <div style={{ display:"flex", justifyContent:"center", gap:8, marginTop:14, position:"relative", zIndex:2 }}>
+          {ATHLETES.map((_,i)=>(
+            <div key={i} onClick={()=>setActive(i)} style={{
+              width:i===active?24:7, height:7, borderRadius:4, cursor:"pointer",
+              background:i===active?activeCard.neonColor:"rgba(255,255,255,.15)",
+              boxShadow:i===active?`0 0 10px ${activeCard.neonColor}, 0 0 20px ${activeCard.neonColor}66`:"none",
+              transition:"all .35s",
+            }}/>
+          ))}
+        </div>
+
+        {/* Machine bottom vent lines */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:6, background:`repeating-linear-gradient(90deg,${activeCard.neonColor}22 0,${activeCard.neonColor}22 3px,transparent 3px,transparent 8px)`, transition:"background .6s" }}/>
       </div>
     </div>
   );
@@ -204,57 +378,153 @@ function Carousel() {
 // ─── LANDING ──────────────────────────────────────────────────────────────────
 function LandingScreen({ onSnap, onBulk }) {
   const [tick, setTick] = useState(0);
-  useEffect(()=>{ const t=setInterval(()=>setTick(v=>v+1),55); return()=>clearInterval(t); },[]);
-  const hue = (tick * 0.9) % 360;
+  const [glitch, setGlitch] = useState(false);
+  useEffect(()=>{
+    const t = setInterval(()=>setTick(v=>v+1), 50);
+    // Random glitch effect
+    const g = setInterval(()=>{ setGlitch(true); setTimeout(()=>setGlitch(false), 120); }, 4000 + Math.random()*3000);
+    return()=>{ clearInterval(t); clearInterval(g); };
+  },[]);
+
+  const neonCycle = ["#00f5ff","#ff00aa","#FFD700","#9000ff"];
+  const neon = neonCycle[Math.floor(tick/80) % neonCycle.length];
+
   return (
-    <Screen>
-      <div style={{ position:"absolute", top:-80, left:"50%", transform:"translateX(-50%)", width:700, height:480, background:"radial-gradient(ellipse,rgba(255,215,0,.055),transparent 70%)", pointerEvents:"none" }}/>
-      <div style={{ position:"absolute", bottom:-60, left:"50%", transform:"translateX(-50%)", width:900, height:320, background:"radial-gradient(ellipse,rgba(200,16,46,.07),transparent 70%)", pointerEvents:"none" }}/>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 22px", position:"relative", zIndex:10 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-          <div style={{ width:32, height:32, borderRadius:9, background:"linear-gradient(135deg,#ffd700,#c8102e)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, boxShadow:"0 2px 14px rgba(255,215,0,.28)" }}>📸</div>
-          <span style={{ color:C.text, fontWeight:900, fontSize:21, letterSpacing:"-0.02em" }}>CardSnap</span>
+    <Screen style={{ background:"#08050f" }}>
+      <style>{`
+        @keyframes sw{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+        @keyframes flicker{0%,95%,100%{opacity:1}96%,99%{opacity:.7}}
+        @keyframes gridScroll{from{backgroundPosition:0 0}to{backgroundPosition:0 40px}}
+        @keyframes scanDown{0%{top:-4px}100%{top:100%}}
+      `}</style>
+
+      {/* Scrolling grid background */}
+      <div style={{
+        position:"fixed", inset:0, pointerEvents:"none", zIndex:0,
+        backgroundImage:"linear-gradient(rgba(0,245,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.04) 1px,transparent 1px)",
+        backgroundSize:"40px 40px",
+        animation:"gridScroll 3s linear infinite",
+      }}/>
+
+      {/* Moving scan line */}
+      <div style={{ position:"fixed", left:0, right:0, height:4, background:"linear-gradient(90deg,transparent,rgba(0,245,255,.15),transparent)", pointerEvents:"none", zIndex:1, animation:"scanDown 6s linear infinite" }}/>
+
+      {/* Vignette */}
+      <div style={{ position:"fixed", inset:0, background:"radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.7) 100%)", pointerEvents:"none", zIndex:0 }}/>
+
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 22px", position:"relative", zIndex:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{
+            width:36, height:36, borderRadius:8,
+            background:"linear-gradient(135deg,#00f5ff22,#9000ff22)",
+            border:"1.5px solid #00f5ff",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:18,
+            boxShadow:"0 0 16px rgba(0,245,255,.4)",
+          }}>📸</div>
+          <div>
+            <span style={{
+              color:"#00f5ff", fontWeight:900, fontSize:22,
+              letterSpacing:".08em", fontFamily:"'Courier New',monospace",
+              textShadow:"0 0 20px #00f5ff, 0 0 40px #00f5ff66",
+              filter:glitch?"hue-rotate(90deg)":"none",
+              transition:"filter .05s",
+            }}>CARD<span style={{ color:"#ff00aa", textShadow:"0 0 20px #ff00aa" }}>SNAP</span></span>
+          </div>
         </div>
-        <div style={{ display:"flex", gap:7 }}>
-          {["History","⚙️"].map(l=><button key={l} style={btn({ background:"rgba(255,255,255,.05)", border:`1px solid ${C.border}`, borderRadius:20, padding:"6px 13px", color:C.muted, fontSize:12 })}>{l}</button>)}
+        <div style={{ display:"flex", gap:8 }}>
+          {["HISTORY","SYS"].map(l=>(
+            <button key={l} style={btn({ background:"rgba(0,245,255,.06)", border:"1px solid rgba(0,245,255,.25)", borderRadius:6, padding:"6px 12px", color:"#00f5ff", fontSize:10, letterSpacing:".12em" })}
+              onMouseEnter={e=>{ e.currentTarget.style.background="rgba(0,245,255,.14)"; e.currentTarget.style.boxShadow="0 0 12px rgba(0,245,255,.3)"; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background="rgba(0,245,255,.06)"; e.currentTarget.style.boxShadow="none"; }}>
+              {l}
+            </button>
+          ))}
         </div>
       </div>
-      <div style={{ textAlign:"center", padding:"4px 24px 0", position:"relative", zIndex:10 }}>
-        <div style={{ fontSize:10.5, letterSpacing:".2em", textTransform:"uppercase", color:C.gold, fontWeight:700, marginBottom:12, textShadow:"0 0 16px rgba(255,215,0,.4)" }}>Photo → Live eBay Listing in 30 Seconds</div>
-        <h1 style={{ fontSize:38, fontWeight:900, color:C.text, margin:0, lineHeight:1.08, letterSpacing:"-0.025em" }}>
-          List cards<br/>
-          <span style={{ background:`linear-gradient(${hue}deg,#ffd700,#ff6b35,#c8102e,#ffd700)`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundSize:"300%" }}>like a pro.</span>
+
+      {/* Hero text */}
+      <div style={{ textAlign:"center", padding:"0 24px 0", position:"relative", zIndex:10 }}>
+        <div style={{ fontSize:9, letterSpacing:".3em", textTransform:"uppercase", color:"#ff00aa", fontWeight:700, marginBottom:10, textShadow:"0 0 12px #ff00aa", animation:"flicker 5s infinite" }}>
+          ▶ INITIALIZING CARD SCANNER v2.0 ◀
+        </div>
+        <h1 style={{ fontSize:32, fontWeight:900, color:"#fff", margin:0, lineHeight:1.1, letterSpacing:".04em", fontFamily:"'Courier New',monospace" }}>
+          <span style={{ color:"#00f5ff", textShadow:"0 0 24px #00f5ff, 0 0 48px #00f5ff44", display:"block", fontSize:36 }}>LIST CARDS</span>
+          <span style={{ color:"#ff00aa", textShadow:"0 0 24px #ff00aa, 0 0 48px #ff00aa44", fontSize:28 }}>LIKE A PRO</span>
         </h1>
+        <div style={{ fontSize:10, color:"rgba(0,245,255,.6)", letterSpacing:".18em", marginTop:8, fontFamily:"'Courier New',monospace" }}>
+          PHOTO → EBAY LISTING IN 30 SECONDS
+        </div>
       </div>
-      <div style={{ width:"100%", maxWidth:500, margin:"0 auto", padding:"22px 0 28px", position:"relative", zIndex:5 }}><Carousel/></div>
-      <div style={{ display:"flex", gap:28, justifyContent:"center", marginBottom:26, position:"relative", zIndex:10 }}>
-        {[{val:"28s",label:"avg list time"},{val:"PSA 10",label:"graded support"},{val:"eBay",label:"live listings"}].map(({val,label})=>(
-          <div key={label} style={{ textAlign:"center" }}>
-            <div style={{ color:C.gold, fontWeight:900, fontSize:15, textShadow:"0 0 10px rgba(255,215,0,.35)" }}>{val}</div>
-            <div style={{ color:C.muted, fontSize:10.5, marginTop:3 }}>{label}</div>
+
+      {/* Machine carousel */}
+      <div style={{ width:"100%", maxWidth:460, margin:"20px auto 16px", padding:"0 16px", position:"relative", zIndex:5 }}>
+        <RetroMachineCarousel/>
+      </div>
+
+      {/* Stats — retro readout style */}
+      <div style={{ display:"flex", gap:0, justifyContent:"center", marginBottom:20, position:"relative", zIndex:10 }}>
+        {[{val:"28s",label:"AVG LIST TIME"},{val:"PSA 10",label:"GRADED READY"},{val:"EBAY",label:"LIVE OUTPUT"}].map(({val,label},i)=>(
+          <div key={label} style={{ textAlign:"center", padding:"8px 20px", borderLeft:i>0?"1px solid rgba(0,245,255,.15)":"none" }}>
+            <div style={{ color:"#00f5ff", fontWeight:900, fontSize:16, fontFamily:"'Courier New',monospace", textShadow:"0 0 12px #00f5ff" }}>{val}</div>
+            <div style={{ color:"rgba(0,245,255,.45)", fontSize:8, marginTop:3, letterSpacing:".12em" }}>{label}</div>
           </div>
         ))}
       </div>
-      <div style={{ width:"100%", maxWidth:430, margin:"auto auto 0", padding:"0 20px 40px", display:"flex", flexDirection:"column", gap:11, position:"relative", zIndex:10 }}>
-        <button onClick={onSnap} style={btn({ width:"100%", padding:"21px", borderRadius:16, background:"linear-gradient(135deg,#ffd700,#ff9500 55%,#c8102e)", color:"#000", fontSize:18, fontWeight:900, boxShadow:"0 4px 32px rgba(255,180,0,.32)", letterSpacing:".01em", position:"relative", overflow:"hidden" })}>
-          <div style={{ position:"absolute", inset:0, background:"linear-gradient(100deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%)", animation:"sw 2.8s ease-in-out infinite" }}/>
-          <style>{`@keyframes sw{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}`}</style>
-          <span style={{ position:"relative" }}>📷  Snap a Card</span>
+
+      {/* CTAs */}
+      <div style={{ width:"100%", maxWidth:420, margin:"auto auto 0", padding:"0 20px 36px", display:"flex", flexDirection:"column", gap:10, position:"relative", zIndex:10 }}>
+
+        {/* Primary snap button */}
+        <button onClick={onSnap} style={btn({
+          width:"100%", padding:"20px",
+          borderRadius:8,
+          background:"linear-gradient(135deg,rgba(0,245,255,.15),rgba(144,0,255,.15))",
+          border:"2px solid #00f5ff",
+          color:"#00f5ff", fontSize:17, fontWeight:900,
+          letterSpacing:".12em",
+          boxShadow:"0 0 30px rgba(0,245,255,.35), inset 0 0 20px rgba(0,245,255,.05)",
+          position:"relative", overflow:"hidden",
+          textShadow:"0 0 16px #00f5ff",
+        })}
+          onMouseEnter={e=>{ e.currentTarget.style.background="linear-gradient(135deg,rgba(0,245,255,.25),rgba(144,0,255,.25))"; e.currentTarget.style.boxShadow="0 0 50px rgba(0,245,255,.55), inset 0 0 30px rgba(0,245,255,.1)"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.background="linear-gradient(135deg,rgba(0,245,255,.15),rgba(144,0,255,.15))"; e.currentTarget.style.boxShadow="0 0 30px rgba(0,245,255,.35), inset 0 0 20px rgba(0,245,255,.05)"; }}>
+          <div style={{ position:"absolute", inset:0, background:"linear-gradient(100deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%)", animation:"sw 2.8s ease-in-out infinite" }}/>
+          <span style={{ position:"relative" }}>[ 📷 SNAP A CARD ]</span>
         </button>
-        <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-          <div style={{ flex:1, height:1, background:C.border }}/><span style={{ color:C.dim, fontSize:12 }}>or</span><div style={{ flex:1, height:1, background:C.border }}/>
+
+        {/* Divider */}
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ flex:1, height:1, background:"rgba(0,245,255,.15)" }}/>
+          <span style={{ color:"rgba(0,245,255,.4)", fontSize:9, letterSpacing:".2em" }}>OR</span>
+          <div style={{ flex:1, height:1, background:"rgba(0,245,255,.15)" }}/>
         </div>
-        <button onClick={onBulk} style={btn({ width:"100%", padding:"16px 18px", borderRadius:16, background:C.surface, border:`1.5px solid ${C.border}`, color:C.text, fontSize:15, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", gap:12 })}
-          onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,255,255,.07)"; e.currentTarget.style.borderColor="rgba(255,215,0,.28)"; }}
-          onMouseLeave={e=>{ e.currentTarget.style.background=C.surface; e.currentTarget.style.borderColor=C.border; }}>
+
+        {/* Bulk button */}
+        <button onClick={onBulk} style={btn({
+          width:"100%", padding:"15px 18px",
+          borderRadius:8,
+          background:"rgba(255,0,170,.08)",
+          border:"1.5px solid rgba(255,0,170,.4)",
+          color:"#ff00aa", fontSize:14, fontWeight:700,
+          letterSpacing:".1em",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:12,
+          textShadow:"0 0 10px #ff00aa44",
+        })}
+          onMouseEnter={e=>{ e.currentTarget.style.background="rgba(255,0,170,.16)"; e.currentTarget.style.boxShadow="0 0 20px rgba(255,0,170,.3)"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.background="rgba(255,0,170,.08)"; e.currentTarget.style.boxShadow="none"; }}>
           <span>🗂️</span>
           <div style={{ textAlign:"left" }}>
-            <div>Bulk List</div>
-            <div style={{ fontSize:11, color:C.muted, fontWeight:400, marginTop:1 }}>Snap up to 5 cards · list all at once</div>
+            <div>[ BULK SESSION ]</div>
+            <div style={{ fontSize:9, color:"rgba(255,0,170,.6)", fontWeight:400, marginTop:2, letterSpacing:".08em" }}>SCAN UP TO 5 CARDS · LIST ALL AT ONCE</div>
           </div>
-          <div style={{ marginLeft:"auto", background:"rgba(255,215,0,.1)", border:"1px solid rgba(255,215,0,.22)", borderRadius:10, padding:"3px 9px", fontSize:11, color:C.gold, fontWeight:800 }}>5 max</div>
+          <div style={{ marginLeft:"auto", background:"rgba(255,0,170,.15)", border:"1px solid rgba(255,0,170,.4)", borderRadius:4, padding:"3px 8px", fontSize:9, color:"#ff00aa", fontWeight:900, letterSpacing:".08em" }}>5 MAX</div>
         </button>
-        <div style={{ textAlign:"center", color:C.dim, fontSize:11, letterSpacing:".03em", marginTop:3 }}>Connected to eBay · Listings go live instantly</div>
+
+        <div style={{ textAlign:"center", color:"rgba(0,245,255,.3)", fontSize:9, letterSpacing:".15em", marginTop:2 }}>
+          ■ CONNECTED TO EBAY · LISTINGS GO LIVE INSTANTLY ■
+        </div>
       </div>
     </Screen>
   );
@@ -352,7 +622,7 @@ function CameraScreen({ onCapture, onBack, isBulk = false, slotNum = 1 }) {
 function ProcessingScreen({ imageBase64, imageMime, onDone, onBack }) {
   const [step, setStep]   = useState(0);
   const [error, setError] = useState(null);
-  const steps = ["Compressing image…","Sending to AI…","Identifying card…","Building listing…"];
+  const steps = ["Compressing image…","Sending to Gemini…","Identifying card…","Building listing…"];
 
   useEffect(() => {
     let i = 0;
@@ -382,24 +652,24 @@ function ProcessingScreen({ imageBase64, imageMime, onDone, onBack }) {
   return (
     <Screen style={{ alignItems:"center", justifyContent:"center" }}>
       <style>{`
-        @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}}
-        @keyframes scan{0%{top:0}100%{top:calc(100% - 3px)}}
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes pulse2{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}}
+        @keyframes scan2{0%{top:0}100%{top:calc(100% - 3px)}}
+        @keyframes spin2{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
       `}</style>
-      <div style={{ position:"absolute", top:"50%", left:"50%", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle,rgba(255,215,0,.06),transparent 70%)", animation:"pulse 2s ease-in-out infinite" }}/>
+      <div style={{ position:"absolute", top:"50%", left:"50%", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle,rgba(0,245,255,.06),transparent 70%)", animation:"pulse2 2s ease-in-out infinite" }}/>
       <div style={{ position:"relative", zIndex:2, textAlign:"center", padding:"0 40px" }}>
-        <div style={{ width:100, height:140, margin:"0 auto 32px", borderRadius:8, border:"2px solid rgba(255,215,0,.3)", position:"relative", overflow:"hidden", background:"rgba(255,215,0,.04)" }}>
-          <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:"linear-gradient(90deg,transparent,#ffd700,transparent)", animation:"scan 1.4s ease-in-out infinite" }}/>
-          <div style={{ position:"absolute", inset:0, background:"repeating-linear-gradient(0deg,transparent,transparent 8px,rgba(255,215,0,.04) 9px)" }}/>
+        <div style={{ width:100, height:140, margin:"0 auto 32px", borderRadius:8, border:"2px solid rgba(0,245,255,.4)", position:"relative", overflow:"hidden", background:"rgba(0,245,255,.04)" }}>
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:"linear-gradient(90deg,transparent,#00f5ff,transparent)", animation:"scan2 1.4s ease-in-out infinite" }}/>
+          <div style={{ position:"absolute", inset:0, background:"repeating-linear-gradient(0deg,transparent,transparent 8px,rgba(0,245,255,.04) 9px)" }}/>
         </div>
-        <div style={{ color:C.gold, fontSize:13, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", marginBottom:20 }}>Analyzing card</div>
+        <div style={{ color:"#00f5ff", fontSize:12, fontWeight:700, letterSpacing:".15em", textTransform:"uppercase", marginBottom:20, textShadow:"0 0 12px #00f5ff" }}>Analyzing card</div>
         <div style={{ display:"flex", flexDirection:"column", gap:10, textAlign:"left" }}>
           {steps.map((s,i)=>(
             <div key={i} style={{ display:"flex", alignItems:"center", gap:10, opacity:i<=step?1:0.28, transition:"opacity .4s" }}>
-              <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, background:i<step?C.green:i===step?"rgba(255,215,0,.15)":"rgba(255,255,255,.06)", border:`2px solid ${i<step?C.green:i===step?C.gold:C.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9 }}>
-                {i<step ? "✓" : i===step ? <span style={{ display:"block", animation:"spin 1s linear infinite" }}>◌</span> : ""}
+              <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0, background:i<step?"#4ade80":i===step?"rgba(0,245,255,.15)":"rgba(255,255,255,.06)", border:`2px solid ${i<step?"#4ade80":i===step?"#00f5ff":C.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, boxShadow:i===step?"0 0 10px #00f5ff":"none" }}>
+                {i<step ? "✓" : i===step ? <span style={{ display:"block", animation:"spin2 1s linear infinite" }}>◌</span> : ""}
               </div>
-              <span style={{ color:i<=step?C.text:C.muted, fontSize:13 }}>{s}</span>
+              <span style={{ color:i<=step?C.text:C.muted, fontSize:13, fontFamily:"'Courier New',monospace" }}>{s}</span>
             </div>
           ))}
         </div>
@@ -491,7 +761,7 @@ function QuestionFlow({ cardData, onDone, onBack }) {
         <label style={{ color:C.muted, fontSize:12, display:"block", marginBottom:6 }}>Your price</label>
         <div style={{ position:"relative" }}>
           <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:C.text, fontWeight:700, fontSize:16 }}>$</span>
-          <input type="number" value={answers.price} onChange={e=>set("price",e.target.value)} style={{ width:"100%", padding:"14px 14px 14px 28px", borderRadius:12, background:C.surface, border:`1.5px solid ${C.border}`, color:C.text, fontSize:18, fontWeight:700, fontFamily:"Georgia,serif", outline:"none", boxSizing:"border-box" }}/>
+          <input type="number" value={answers.price} onChange={e=>set("price",e.target.value)} style={{ width:"100%", padding:"14px 14px 14px 28px", borderRadius:12, background:C.surface, border:`1.5px solid ${C.border}`, color:C.text, fontSize:18, fontWeight:700, fontFamily:"'Courier New',monospace", outline:"none", boxSizing:"border-box" }}/>
         </div>
         <button onClick={()=>set("price",String(suggested))} style={btn({ marginTop:10, padding:"8px 14px", borderRadius:10, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", color:C.gold, fontSize:12, fontWeight:700 })}>Use suggested ${suggested}</button>
       </div>
@@ -556,7 +826,7 @@ function PreviewScreen({ cardData, answers, imageUrl, onList, onBack }) {
             <span style={{ color:title.length>80?C.red:title.length>70?C.gold:C.muted, fontSize:11 }}>{title.length}/80</span>
           </div>
           {editingTitle
-            ?<textarea value={title} onChange={e=>setTitle(e.target.value.slice(0,80))} onBlur={()=>setEditing(false)} autoFocus style={{ width:"100%", padding:"12px", borderRadius:10, background:C.surface, border:`1.5px solid ${C.gold}`, color:C.text, fontSize:13, fontFamily:"Georgia,serif", resize:"none", height:72, outline:"none", boxSizing:"border-box" }}/>
+            ?<textarea value={title} onChange={e=>setTitle(e.target.value.slice(0,80))} onBlur={()=>setEditing(false)} autoFocus style={{ width:"100%", padding:"12px", borderRadius:10, background:C.surface, border:`1.5px solid ${C.gold}`, color:C.text, fontSize:13, fontFamily:"'Courier New',monospace", resize:"none", height:72, outline:"none", boxSizing:"border-box" }}/>
             :<div onClick={()=>setEditing(true)} style={{ padding:"12px 14px", borderRadius:10, background:C.surface, border:`1px solid ${C.border}`, color:C.text, fontSize:13, lineHeight:1.4, cursor:"text" }}>{title}</div>
           }
         </div>
