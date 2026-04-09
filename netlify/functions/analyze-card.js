@@ -81,7 +81,7 @@ async function callClaude(base64, mime) {
 async function callGemini(base64, mime) {
   const key = process.env.GEMINI_API_KEY;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${key}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
