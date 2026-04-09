@@ -1,4 +1,4 @@
-/**
+h/**
  * CardSnap — analyze-card Netlify Function
  *
  * POST /api/analyze-card
@@ -19,7 +19,7 @@ const PROMPT = `You are a sports card expert. Analyze this card image and return
   "year": string or null,
   "brand": string or null,
   "set_name": string or null,
-  "card_number": string or null,
+  "card_number": string or null,h
   "parallel": string or null,
   "sport": "football" or "basketball" or "baseball" or "hockey" or "soccer" or null,
   "team": string or null,
@@ -81,7 +81,7 @@ async function callClaude(base64, mime) {
 async function callGemini(base64, mime) {
   const key = process.env.GEMINI_API_KEY;
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
