@@ -1,4 +1,4 @@
-h/**
+/**
  * CardSnap — analyze-card Netlify Function
  *
  * POST /api/analyze-card
@@ -19,7 +19,7 @@ const PROMPT = `You are a sports card expert. Analyze this card image and return
   "year": string or null,
   "brand": string or null,
   "set_name": string or null,
-  "card_number": string or null,h
+  "card_number": string or null,
   "parallel": string or null,
   "sport": "football" or "basketball" or "baseball" or "hockey" or "soccer" or null,
   "team": string or null,
