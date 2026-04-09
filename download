@@ -1,0 +1,10 @@
+# Copy this to .env.local for local development
+# Set these in Netlify → Site → Environment Variables for production
+
+# Primary: Gemini Flash (free tier + ~$0.0002/scan at paid)
+# Get your key free at aistudio.google.com
+GEMINI_API_KEY=AIza...
+
+# Optional: switch to Claude Sonnet for higher accuracy
+# AI_PROVIDER=claude
+# ANTHROPIC_API_KEY=sk-ant-...
