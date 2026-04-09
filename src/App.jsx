@@ -22,7 +22,7 @@ async function compressImage(base64, mime) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 800;
+      const MAX = 500;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const canvas = document.createElement("canvas");
       canvas.width  = Math.round(img.width  * scale);
